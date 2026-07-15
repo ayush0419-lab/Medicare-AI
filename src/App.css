@@ -1,0 +1,13 @@
+/* ═══════════════════════════════════════════════════
+   MEDICARE-AI — CLINICAL & TRUSTWORTHY UI
+   ═══════════════════════════════════════════════════ */
+
+/* App specific custom styles (if any) go here. 
+   Most styling should be done via Tailwind utility classes. */
+
+.text-gradient {
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-image: linear-gradient(to right, #2563eb, #059669); /* blue-600 to emerald-600 */
+}

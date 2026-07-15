@@ -1,0 +1,242 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 222.2 47.4% 11.2%;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased font-sans selection:bg-indigo-500/30 selection:text-indigo-900;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@layer components {
+  /* Core UI Elements */
+  .stripe-card {
+    @apply bg-white/90 border border-slate-200/50 rounded-xl overflow-hidden backdrop-blur-xl;
+  }
+  
+  .glass-panel {
+    @apply bg-white/72 backdrop-blur-xl border border-slate-200/40 rounded-xl;
+  }
+
+  .input-elite {
+    @apply w-full bg-white/80 backdrop-blur-sm border border-slate-200/80 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-[0_2px_4px_rgba(0,0,0,0.02)];
+  }
+
+  /* Vibrant Mesh Gradients for Hero & Auth Backgrounds */
+  .mesh-hero {
+    background-color: #f8fafc;
+    background-image: 
+      radial-gradient(at 80% 0%, hsla(250, 100%, 90%, 0.7) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, hsla(210, 100%, 92%, 0.8) 0px, transparent 50%),
+      radial-gradient(at 80% 100%, hsla(190, 100%, 90%, 0.6) 0px, transparent 50%),
+      radial-gradient(at 0% 0%, hsla(280, 100%, 94%, 0.6) 0px, transparent 50%);
+  }
+
+  /* Role-Specific Auth Backgrounds */
+  .mesh-auth-doctor {
+    background-color: #f0fdf4;
+    background-image: 
+      radial-gradient(at 100% 0%, hsla(150, 100%, 90%, 0.8) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(180, 100%, 92%, 0.8) 0px, transparent 50%);
+  }
+
+  .mesh-auth-patient {
+    background-color: #f0f9ff;
+    background-image: 
+      radial-gradient(at 100% 0%, hsla(200, 100%, 90%, 0.8) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(190, 100%, 92%, 0.8) 0px, transparent 50%);
+  }
+
+  .mesh-auth-hospital {
+    background-color: #eff6ff;
+    background-image: 
+      radial-gradient(at 100% 0%, hsla(220, 100%, 90%, 0.8) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(250, 100%, 92%, 0.8) 0px, transparent 50%);
+  }
+
+  .mesh-auth-admin {
+    background-color: #faf5ff;
+    background-image: 
+      radial-gradient(at 100% 0%, hsla(280, 100%, 90%, 0.8) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(310, 100%, 92%, 0.8) 0px, transparent 50%);
+  }
+
+  /* Typography */
+  .heading-elite {
+    @apply font-bold tracking-tight text-slate-900;
+  }
+  
+  .subheading-elite {
+    @apply font-medium text-slate-500 leading-relaxed;
+  }
+
+  .btn-minimal {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-bold text-white shadow-[0_14px_30px_-18px_rgba(15,23,42,0.8)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-minimal-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white/80 px-4 py-2.5 text-sm font-bold text-slate-700 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.65)] transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-slate-900/10 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .depth-stage {
+    perspective: 1200px;
+    transform-style: preserve-3d;
+  }
+
+  /* Premium unified card system */
+  .depth-card {
+    position: relative;
+    border-radius: 0.75rem;
+    transform: translate3d(0, 0, 0) scale(1);
+    transition: 
+      transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 240ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 240ms cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+    overflow: hidden;
+    box-shadow: 
+      0 6px 16px -6px rgba(15, 23, 42, 0.08),
+      0 1px 2px -1px rgba(15, 23, 42, 0.04);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+  }
+
+  .depth-card:hover {
+    transform: translate3d(0, -4px, 0) scale(1.01);
+    border-color: rgba(99, 102, 241, 0.3); /* Subtle Indigo Border Glow */
+    box-shadow: 
+      0 20px 30px -12px rgba(15, 23, 42, 0.12),
+      0 4px 8px -2px rgba(99, 102, 241, 0.06);
+  }
+
+  .holo-surface {
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.72), rgba(255,255,255,0.42)),
+      linear-gradient(90deg, rgba(14,165,233,0.08), rgba(16,185,129,0.08), rgba(245,158,11,0.08));
+    border: 1px solid rgba(255, 255, 255, 0.66);
+    backdrop-filter: blur(22px);
+  }
+
+  .clinical-grid {
+    background-image:
+      linear-gradient(rgba(15,23,42,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15,23,42,0.06) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+}
+
+.medical-scene,
+.medical-scene canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.medical-scene canvas {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .depth-card {
+    transition: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Premium Vision Section Styles */
+.depth-card-premium {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.015);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 24px;
+  box-shadow: 
+    0 4px 30px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  transition: border-color 0.4s ease, box-shadow 0.4s ease, background-color 0.4s ease;
+}
+
+.depth-card-premium:hover {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(79, 209, 197, 0.35); /* Cyan glow border */
+  box-shadow: 
+    0 10px 40px -10px rgba(79, 209, 197, 0.15),
+    0 0 20px 0 rgba(79, 209, 197, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.08);
+}
+
+.shine-effect {
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.04),
+    transparent
+  );
+  transform: skewX(-20deg);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.depth-card-premium:hover .shine-effect {
+  animation: premium-shine 1.2s ease-in-out forwards;
+}
+
+@keyframes premium-shine {
+  0% { left: -150%; }
+  100% { left: 150%; }
+}
+
+.glass-btn-glow {
+  position: relative;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #4FD1C5;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 15px rgba(79, 209, 197, 0.05);
+}
+
+.glass-btn-glow:hover {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(79, 209, 197, 0.35);
+}
+
+.vision-grid {
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
