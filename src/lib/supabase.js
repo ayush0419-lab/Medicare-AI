@@ -24,3 +24,18 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
   },
 });
+
+export const logAudit = async (action, details = null) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from('audit_logs').insert([{
+      user_id: user.id,
+      action,
+      details,
+      ip_address: '127.0.0.1'
+    }]);
+  } catch (err) {
+    console.error("Failed to write audit log:", err);
+  }
+};

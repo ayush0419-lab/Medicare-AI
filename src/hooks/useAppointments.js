@@ -80,6 +80,7 @@ export const useAppointments = () => {
 
       if (addError) throw addError;
       toast.success('Appointment scheduled');
+      await fetchAppointments();
       return data;
     } catch (err) {
       toast.error(err.message);
@@ -96,6 +97,7 @@ export const useAppointments = () => {
 
       if (updateError) throw updateError;
       toast.success(`Appointment ${status}`);
+      await fetchAppointments();
     } catch (err) {
       toast.error(err.message);
     }

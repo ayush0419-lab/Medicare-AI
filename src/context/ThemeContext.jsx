@@ -18,7 +18,7 @@ function applyTheme(preference) {
 
 export function ThemeProvider({ children }) {
   const [preference, setPreference] = useState(() => {
-    return localStorage.getItem(STORAGE_KEY) || 'dark';
+    return localStorage.getItem(STORAGE_KEY) || 'system';
   });
 
   // Resolved = actual applied theme (dark or light)

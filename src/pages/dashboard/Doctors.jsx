@@ -1,87 +1,161 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import {
   Search, Stethoscope, X, Star, Phone, Mail,
   Calendar, Users, Award, ChevronRight, Loader2,
-  ShieldCheck, Clock, TrendingUp, Trash2
+  ShieldCheck, Clock, TrendingUp, Trash2, Edit,
+  Plus, Check, CheckCircle2, AlertCircle, Save,
+  UserCheck, UserX, ShieldAlert, Award as QualIcon, Eye
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 
 const SPECIALTIES = [
-  'All', 'Cardiology', 'Neurology', 'Orthopedics', 'Oncology',
+  'Cardiology', 'Neurology', 'Orthopedics', 'Oncology',
   'Pediatrics', 'Dermatology', 'Psychiatry', 'Radiology', 'General Practice'
 ];
-
-const AVATAR_COLORS = [
-  'from-violet-500 to-indigo-600',
-  'from-cyan-500 to-blue-600',
-  'from-emerald-500 to-teal-600',
-  'from-rose-500 to-pink-600',
-  'from-amber-500 to-orange-600',
-  'from-fuchsia-500 to-purple-600',
-];
-
-const getAvatarColor = (name = '') => {
-  const idx = name.charCodeAt(0) % AVATAR_COLORS.length;
-  return AVATAR_COLORS[idx];
-};
-
-const getInitials = (name = '') =>
-  name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
-
-const STAT_MOCK = (id) => ({
-  patients: 40 + ((id?.charCodeAt(0) || 7) % 60),
-  rating: (4.2 + ((id?.charCodeAt(1) || 3) % 8) / 10).toFixed(1),
-  years: 3 + ((id?.charCodeAt(2) || 2) % 18),
-});
 
 export const Doctors = () => {
   const { profile } = useAuth();
 
-  // All hooks must be declared before any early return (React rules of hooks)
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All'); // All, Approved, Pending, Suspended
+
+  // Modals & Details State
   const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingDoctor, setEditingDoctor] = useState(null);
+
+  // Form Fields State
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [specialty, setSpecialty] = useState('General Practice');
+  const [licenseNumber, setLicenseNumber] = useState('');
+  const [organization, setOrganization] = useState('');
+  const [qualifications, setQualifications] = useState('');
+  const [experienceYears, setExperienceYears] = useState(0);
 
   // 🔒 Admin-only page — block access for doctors and patients
   if (profile && profile.role !== 'admin') {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-6">
-        <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center">
-          <ShieldCheck className="w-8 h-8 text-rose-400" />
+        <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+          <ShieldAlert className="w-8 h-8 text-rose-500" />
         </div>
-        <h2 className="text-xl font-bold text-slate-800">Access Restricted</h2>
-        <p className="text-sm text-slate-500 max-w-sm">
-          Only <span className="font-semibold text-indigo-600">Administrators</span> can view the Doctors directory.
+        <h2 className="text-xl font-bold text-white">Access Restricted</h2>
+        <p className="text-sm text-slate-400 max-w-sm">
+          Only <span className="font-semibold text-rose-400">Administrators</span> can view the Doctors directory.
           Please contact your system admin if you need access.
         </p>
       </div>
     );
   }
 
-  useEffect(() => {
-    const fetchDoctors = async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('role', 'doctor')
-          .order('full_name', { ascending: true });
-        if (error) throw error;
-        setDoctors(data || []);
-      } catch (err) {
-        console.error('Error fetching doctors:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDoctors();
+  // Fetch Doctors List
+  const fetchDoctors = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'doctor')
+        .order('full_name', { ascending: true });
+      if (error) throw error;
+      setDoctors(data || []);
+    } catch (err) {
+      console.error('Error fetching doctors:', err);
+      toast.error('Failed to load doctor profiles.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    fetchDoctors();
+  }, [fetchDoctors]);
+
+  // Open Form Modal (Add / Edit)
+  const handleOpenForm = (doc = null) => {
+    if (doc) {
+      setEditingDoctor(doc);
+      setFullName(doc.full_name || '');
+      setEmail(doc.email || '');
+      setPhone(doc.phone || '');
+      setSpecialty(doc.specialty || 'General Practice');
+      setLicenseNumber(doc.license_number || '');
+      setOrganization(doc.organization || '');
+      setQualifications(doc.qualifications || '');
+      setExperienceYears(doc.experience_years || 0);
+    } else {
+      setEditingDoctor(null);
+      setFullName('');
+      setEmail('');
+      setPhone('');
+      setSpecialty('General Practice');
+      setLicenseNumber('');
+      setOrganization('');
+      setQualifications('');
+      setExperienceYears(0);
+    }
+    setIsFormOpen(true);
+  };
+
+  // Submit Add / Edit Doctor Profile
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!fullName) {
+      toast.error('Full Name is required.');
+      return;
+    }
+
+    const payload = {
+      full_name: fullName,
+      email: email || null,
+      phone: phone || null,
+      specialty,
+      license_number: licenseNumber || null,
+      organization,
+      qualifications,
+      experience_years: Number(experienceYears) || 0,
+      role: 'doctor',
+      approved: editingDoctor ? editingDoctor.approved : true,
+      verified: editingDoctor ? editingDoctor.verified : true
+    };
+
+    try {
+      if (editingDoctor) {
+        // Update existing doctor profile
+        const { error } = await supabase
+          .from('profiles')
+          .update(payload)
+          .eq('id', editingDoctor.id);
+
+        if (error) throw error;
+        toast.success('Doctor profile updated successfully!');
+      } else {
+        // Create new doctor profile (generates a random auth-linked matching ID)
+        const newId = crypto.randomUUID();
+        const { error } = await supabase
+          .from('profiles')
+          .insert([{ ...payload, id: newId }]);
+
+        if (error) throw error;
+        toast.success('New doctor profile added successfully!');
+      }
+      setIsFormOpen(false);
+      fetchDoctors();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to save doctor profile.');
+    }
+  };
+
+  // Delete Doctor Profile
   const handleDeleteDoctor = async (doctorId) => {
     if (!window.confirm("Are you sure you want to remove this doctor profile? This action cannot be undone.")) {
       return;
@@ -100,278 +174,535 @@ export const Doctors = () => {
       setSelectedDoctor(null);
     } catch (err) {
       console.error("Error removing doctor:", err);
-      toast.error(err.message || "Failed to remove doctor profile");
+      toast.error("Failed to remove doctor profile");
     }
   };
 
-  const filtered = doctors.filter(d => {
+  // Approve Doctor Registration
+  const handleApproveDoctor = async (doctorId) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ approved: true })
+        .eq('id', doctorId);
+
+      if (error) throw error;
+
+      // Notify the doctor
+      await supabase.from('notifications').insert([{
+        user_id: doctorId,
+        title: "Account Approved",
+        message: "Your doctor account has been approved by the system administrator.",
+        type: "info"
+      }]);
+
+      toast.success("Doctor account approved successfully!");
+      fetchDoctors();
+      if (selectedDoctor?.id === doctorId) {
+        setSelectedDoctor(prev => ({ ...prev, approved: true }));
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to approve doctor registration.");
+    }
+  };
+
+  // Reject / Suspend Doctor Registration
+  const handleSuspendDoctor = async (doctorId) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ approved: false })
+        .eq('id', doctorId);
+
+      if (error) throw error;
+
+      // Notify the doctor
+      await supabase.from('notifications').insert([{
+        user_id: doctorId,
+        title: "Account Suspended",
+        message: "Your doctor account status has been updated to suspended. Please contact admin.",
+        type: "warning"
+      }]);
+
+      toast.success("Doctor account suspended successfully!");
+      fetchDoctors();
+      if (selectedDoctor?.id === doctorId) {
+        setSelectedDoctor(prev => ({ ...prev, approved: false }));
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to suspend doctor account.");
+    }
+  };
+
+  // Verify Doctor Credentials Toggle
+  const handleToggleVerification = async (doctorId, currentStatus) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ verified: !currentStatus })
+        .eq('id', doctorId);
+
+      if (error) throw error;
+
+      // Notify doctor
+      await supabase.from('notifications').insert([{
+        user_id: doctorId,
+        title: "Account Verification Updated",
+        message: `Your medical verification status has been updated to: ${!currentStatus ? 'Verified' : 'Unverified'}.`,
+        type: "info"
+      }]);
+
+      toast.success("Doctor account verification status updated!");
+      fetchDoctors();
+      if (selectedDoctor?.id === doctorId) {
+        setSelectedDoctor(prev => ({ ...prev, verified: !currentStatus }));
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update doctor verification status.");
+    }
+  };
+
+  // Filters logic
+  const filteredDoctors = doctors.filter(d => {
     const matchSearch =
       d.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       d.specialty?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      d.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchSpec =
-      selectedSpecialty === 'All' || d.specialty === selectedSpecialty;
-    return matchSearch && matchSpec;
+      d.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      d.license_number?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchSpec = selectedSpecialty === 'All' || d.specialty === selectedSpecialty;
+
+    let matchStatus = true;
+    if (statusFilter === 'Approved') matchStatus = d.approved === true;
+    else if (statusFilter === 'Pending') matchStatus = d.approved === false;
+    else if (statusFilter === 'Suspended') matchStatus = d.approved === false;
+
+    return matchSearch && matchSpec && matchStatus;
   });
 
   return (
-    <div className="p-6 space-y-6 relative">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
-            <Stethoscope className="w-6 h-6 text-indigo-600" />
-            Doctors
-          </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {doctors.length} registered physician{doctors.length !== 1 ? 's' : ''} on the platform
-          </p>
-        </div>
+    <div className="min-h-screen bg-[#070b19] text-slate-100 p-6 md:p-8 rounded-3xl border border-white/5 relative overflow-hidden font-sans shadow-2xl">
+      {/* Background patterns */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#00f2fe05_1px,transparent_1px),linear-gradient(to_bottom,#00f2fe05_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
+      <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
 
-        {/* Search */}
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search doctors…"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 text-sm bg-white/80 backdrop-blur border border-slate-200 rounded-xl
-                       focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 transition"
-          />
-        </div>
-      </div>
+      <div className="max-w-7xl mx-auto relative z-10 space-y-6">
+        
+        {/* Header Block */}
+        <div className="border-b border-white/10 pb-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide flex items-center gap-1 shadow-md">
+                <Stethoscope className="w-3.5 h-3.5" /> Staff Directory
+              </span>
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-white bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-400">
+              Manage Doctor Accounts
+            </h1>
+            <p className="text-slate-400 text-sm mt-1">
+              Verify credentials, approve applications, modify medical profiles, or suspend system access.
+            </p>
+          </div>
 
-      {/* Specialty filter chips */}
-      <div className="flex flex-wrap gap-2">
-        {SPECIALTIES.map(spec => (
           <button
-            key={spec}
-            onClick={() => setSelectedSpecialty(spec)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200
-              ${selectedSpecialty === spec
-                ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
-                : 'bg-white/70 text-slate-600 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600'
-              }`}
+            onClick={() => handleOpenForm()}
+            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer shadow-md self-start md:self-center"
           >
-            {spec}
-          </button>
-        ))}
-      </div>
-
-      {/* Content */}
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-400">
-          <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-          <p className="text-sm">Loading doctors…</p>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-400">
-          <Stethoscope className="w-10 h-10 text-slate-300" />
-          <p className="text-sm font-medium">No doctors found</p>
-          <p className="text-xs">Try a different search or specialty filter</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.map(doctor => {
-            const stats = STAT_MOCK(doctor.id);
-            const initials = getInitials(doctor.full_name);
-            const avatarColor = getAvatarColor(doctor.full_name);
-            return (
-              <button
-                key={doctor.id}
-                onClick={() => setSelectedDoctor(doctor)}
-                className="depth-card group text-left bg-white/70 backdrop-blur-sm border border-slate-100
-                           rounded-2xl p-5 flex flex-col gap-4 hover:border-indigo-200 transition-all duration-200"
-              >
-                {/* Avatar + name */}
-                <div className="flex items-start gap-3">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${avatarColor}
-                                  flex items-center justify-center text-white font-bold text-base flex-shrink-0`}>
-                    {initials || <Stethoscope className="w-5 h-5" />}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-slate-800 text-sm leading-tight truncate">
-                      Dr. {doctor.full_name || 'Unknown'}
-                    </p>
-                    <p className="text-xs text-indigo-600 font-medium mt-0.5 truncate">
-                      {doctor.specialty || 'General Practice'}
-                    </p>
-                    <div className="flex items-center gap-1 mt-1">
-                      <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                      <span className="text-xs text-slate-500">{stats.rating}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stats row */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-indigo-50 rounded-lg px-3 py-2">
-                    <p className="text-[10px] text-indigo-400 font-medium uppercase tracking-wide">Patients</p>
-                    <p className="text-base font-bold text-indigo-700">{stats.patients}</p>
-                  </div>
-                  <div className="bg-emerald-50 rounded-lg px-3 py-2">
-                    <p className="text-[10px] text-emerald-500 font-medium uppercase tracking-wide">Exp.</p>
-                    <p className="text-base font-bold text-emerald-700">{stats.years}y</p>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="flex items-center justify-between text-xs text-slate-400">
-                  <div className="flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Verified</span>
-                  </div>
-                  <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Detail Drawer */}
-      {selectedDoctor && (
-        <DoctorDrawer
-          doctor={selectedDoctor}
-          onClose={() => setSelectedDoctor(null)}
-          onDelete={handleDeleteDoctor}
-        />
-      )}
-    </div>
-  );
-};
-
-/* ─── Detail Drawer ─────────────────────────────────────────────────────── */
-const DoctorDrawer = ({ doctor, onClose, onDelete }) => {
-  const { profile } = useAuth();
-  const stats = STAT_MOCK(doctor.id);
-  const initials = getInitials(doctor.full_name);
-  const avatarColor = getAvatarColor(doctor.full_name);
-
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
-        onClick={onClose}
-      />
-
-      {/* Drawer */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl z-50
-                      flex flex-col overflow-hidden animate-slide-in-right">
-        {/* Top bar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-800 text-base">Doctor Profile</h2>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-slate-100 transition"
-          >
-            <X className="w-4 h-4 text-slate-500" />
+            <Plus className="w-4 h-4" /> Add Doctor Profile
           </button>
         </div>
 
-        {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Hero card */}
-          <div className="bg-gradient-to-br from-indigo-50 to-violet-50 rounded-2xl p-6 flex gap-4 items-center border border-indigo-100">
-            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${avatarColor}
-                             flex items-center justify-center text-white font-bold text-xl flex-shrink-0 shadow-lg`}>
-              {initials || <Stethoscope className="w-7 h-7" />}
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-800">Dr. {doctor.full_name || 'Unknown'}</h3>
-              <p className="text-sm text-indigo-600 font-medium">{doctor.specialty || 'General Practice'}</p>
-              <div className="flex items-center gap-1 mt-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="text-xs text-emerald-600 font-medium">Verified Physician</span>
-              </div>
-            </div>
+        {/* Filters Toolbar */}
+        <div className="depth-card bg-slate-900/40 border border-white/10 p-5 rounded-2xl flex flex-col md:flex-row gap-4 items-center">
+          
+          {/* Search bar */}
+          <div className="relative w-full md:flex-1">
+            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 transform -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by name, specialty, email, or license..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-950/70 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition-colors"
+            />
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { icon: Users, label: 'Patients', value: stats.patients, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-              { icon: Star, label: 'Rating', value: stats.rating, color: 'text-amber-600', bg: 'bg-amber-50' },
-              { icon: Award, label: 'Experience', value: `${stats.years}y`, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-            ].map(({ icon: Icon, label, value, color, bg }) => (
-              <div key={label} className={`${bg} rounded-xl p-3 text-center`}>
-                <Icon className={`w-4 h-4 ${color} mx-auto mb-1`} />
-                <p className="text-xs text-slate-500">{label}</p>
-                <p className={`text-base font-bold ${color}`}>{value}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Contact */}
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Contact</p>
-            <div className="bg-slate-50 rounded-xl divide-y divide-slate-100">
-              {doctor.email && (
-                <div className="flex items-center gap-3 px-4 py-3">
-                  <Mail className="w-4 h-4 text-slate-400" />
-                  <span className="text-sm text-slate-700 truncate">{doctor.email}</span>
-                </div>
-              )}
-              {doctor.phone ? (
-                <div className="flex items-center gap-3 px-4 py-3">
-                  <Phone className="w-4 h-4 text-slate-400" />
-                  <span className="text-sm text-slate-700">{doctor.phone}</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3 px-4 py-3 text-slate-400">
-                  <Phone className="w-4 h-4" />
-                  <span className="text-sm">Phone not provided</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Highlights */}
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Highlights</p>
-            <div className="space-y-2">
-              {[
-                { icon: TrendingUp, text: `${stats.patients} active patients managed`, color: 'text-indigo-500 bg-indigo-50' },
-                { icon: Clock, text: `${stats.years} years of clinical experience`, color: 'text-emerald-500 bg-emerald-50' },
-                { icon: Calendar, text: 'Available for appointments', color: 'text-violet-500 bg-violet-50' },
-              ].map(({ icon: Icon, text, color }) => (
-                <div key={text} className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-3">
-                  <div className={`w-7 h-7 rounded-lg ${color} flex items-center justify-center flex-shrink-0`}>
-                    <Icon className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="text-sm text-slate-700">{text}</span>
-                </div>
+          {/* Specialty Dropdown */}
+          <div className="w-full md:w-48">
+            <select
+              value={selectedSpecialty}
+              onChange={e => setSelectedSpecialty(e.target.value)}
+              className="w-full bg-slate-950/70 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-slate-350 focus:outline-none focus:border-indigo-500 cursor-pointer"
+            >
+              <option value="All">All Specialties</option>
+              {SPECIALTIES.map(s => (
+                <option key={s} value={s}>{s}</option>
               ))}
-            </div>
+            </select>
           </div>
 
-          {/* Organization */}
-          {doctor.organization && (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Organization</p>
-              <div className="bg-slate-50 rounded-xl px-4 py-3 text-sm text-slate-700">
-                {doctor.organization}
-              </div>
-            </div>
-          )}
+          {/* Status Dropdown */}
+          <div className="w-full md:w-48">
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="w-full bg-slate-950/70 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-slate-350 focus:outline-none focus:border-indigo-500 cursor-pointer"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Approved">Approved Only</option>
+              <option value="Pending">Pending Approvals</option>
+            </select>
+          </div>
 
-          {/* Admin Actions */}
-          {profile && profile.role === 'admin' && (
-            <div className="pt-6 border-t border-slate-100">
-              <button
-                onClick={() => onDelete(doctor.id)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-red-200 
-                           hover:bg-red-55 hover:text-red-700 text-red-600 rounded-xl font-semibold text-sm transition-colors cursor-pointer"
-              >
-                <Trash2 className="w-4 h-4" />
-                Remove Doctor Profile
-              </button>
-            </div>
-          )}
         </div>
+
+        {/* Doctors Grid/Table */}
+        {loading ? (
+          <div className="text-center py-20 text-slate-400">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-indigo-500" />
+            <p className="text-xs">Fetching registered clinicians...</p>
+          </div>
+        ) : filteredDoctors.length === 0 ? (
+          <div className="depth-card bg-slate-900/30 border border-white/5 rounded-2xl p-16 text-center text-slate-400">
+            <Stethoscope className="w-10 h-10 text-slate-650 mx-auto mb-4" />
+            <h3 className="text-sm font-bold text-white">No Doctor Accounts Found</h3>
+            <p className="text-xs text-slate-500 mt-1">There are no clinician accounts matching the active filter properties.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-2xl border border-white/10 bg-slate-900/20 backdrop-blur-sm">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-white/10 text-slate-400 bg-white/5 text-[10px] uppercase font-bold tracking-wider">
+                  <th className="p-4">Doctor Details</th>
+                  <th className="p-4">License / Specialty</th>
+                  <th className="p-4">Organization / Hospital</th>
+                  <th className="p-4 text-center">Approved</th>
+                  <th className="p-4 text-center">Verified</th>
+                  <th className="p-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredDoctors.map(doctor => (
+                  <tr key={doctor.id} className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors text-xs font-semibold">
+                    
+                    {/* Name / Contact */}
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-sm">
+                          {doctor.full_name?.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() || 'Dr'}
+                        </div>
+                        <div>
+                          <p className="text-white font-bold">Dr. {doctor.full_name}</p>
+                          <p className="text-[10px] text-slate-400 font-normal">{doctor.email || 'No email'}</p>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Specialty / License */}
+                    <td className="p-4">
+                      <p className="text-indigo-400 font-bold">{doctor.specialty || 'General Practice'}</p>
+                      <p className="text-[10px] text-slate-500 font-mono mt-0.5">Lic: {doctor.license_number || 'N/A'}</p>
+                    </td>
+
+                    {/* Organization / Hospital */}
+                    <td className="p-4 text-slate-350">
+                      {doctor.organization || 'Not Assigned'}
+                    </td>
+
+                    {/* Approved Toggle */}
+                    <td className="p-4 text-center">
+                      <button
+                        onClick={() => doctor.approved ? handleSuspendDoctor(doctor.id) : handleApproveDoctor(doctor.id)}
+                        className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase border tracking-wide cursor-pointer transition ${
+                          doctor.approved 
+                            ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-450' 
+                            : 'bg-rose-500/10 border-rose-500/25 text-rose-450'
+                        }`}
+                      >
+                        {doctor.approved ? 'Approved' : 'Suspended'}
+                      </button>
+                    </td>
+
+                    {/* Verified Toggle */}
+                    <td className="p-4 text-center">
+                      <button
+                        onClick={() => handleToggleVerification(doctor.id, doctor.verified)}
+                        className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase border tracking-wide cursor-pointer transition ${
+                          doctor.verified 
+                            ? 'bg-indigo-500/10 border-indigo-500/25 text-indigo-455' 
+                            : 'bg-slate-800 border-white/10 text-slate-450'
+                        }`}
+                      >
+                        {doctor.verified ? 'Verified' : 'Unverified'}
+                      </button>
+                    </td>
+
+                    {/* Actions buttons */}
+                    <td className="p-4 text-right">
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          onClick={() => setSelectedDoctor(doctor)}
+                          className="p-1.5 bg-slate-950 hover:bg-slate-900 border border-white/10 text-slate-300 rounded-lg cursor-pointer transition"
+                          title="View Profile Details"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleOpenForm(doctor)}
+                          className="p-1.5 bg-indigo-650/40 hover:bg-indigo-650 text-indigo-400 hover:text-white border border-indigo-550/20 rounded-lg cursor-pointer transition"
+                          title="Edit Profile"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteDoctor(doctor.id)}
+                          className="p-1.5 bg-rose-950/45 hover:bg-rose-650 text-rose-450 hover:text-white border border-rose-550/20 rounded-lg cursor-pointer transition"
+                          title="Remove Profile"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
       </div>
-    </>
+
+      {/* DETAIL DRAWER */}
+      <AnimatePresence>
+        {selectedDoctor && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-slate-900 border border-white/15 rounded-3xl p-6 w-full max-w-xl max-h-[85vh] overflow-y-auto font-sans shadow-2xl relative custom-scrollbar space-y-6"
+            >
+              <button 
+                onClick={() => setSelectedDoctor(null)}
+                className="absolute top-4 right-4 p-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-slate-400 hover:text-white cursor-pointer transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Profile Details Hero */}
+              <div className="flex gap-4 items-center bg-white/5 p-4 rounded-2xl border border-white/10">
+                <div className="w-14 h-14 rounded-2xl bg-indigo-500/15 text-indigo-400 flex items-center justify-center font-bold text-lg">
+                  {selectedDoctor.full_name?.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() || 'Dr'}
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-white">Dr. {selectedDoctor.full_name}</h3>
+                  <p className="text-xs text-indigo-400 font-bold mt-0.5">{selectedDoctor.specialty || 'General Practice'}</p>
+                  <p className="text-[10px] text-slate-500 font-mono mt-1">License: {selectedDoctor.license_number || 'N/A'}</p>
+                </div>
+              </div>
+
+              {/* Advanced info segments */}
+              <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4">
+                <div>
+                  <h4 className="text-[10px] text-slate-500 uppercase tracking-wider font-black">Organization / Hospital</h4>
+                  <p className="text-xs text-white font-bold mt-1">{selectedDoctor.organization || 'Not Assigned'}</p>
+                </div>
+
+                <div>
+                  <h4 className="text-[10px] text-slate-500 uppercase tracking-wider font-black">Experience (Years)</h4>
+                  <p className="text-xs text-white font-bold mt-1">{selectedDoctor.experience_years || 0} Years</p>
+                </div>
+              </div>
+
+              {selectedDoctor.qualifications && (
+                <div>
+                  <h4 className="text-[10px] text-slate-500 uppercase tracking-wider font-black">Qualifications & Degrees</h4>
+                  <p className="text-xs text-slate-350 mt-1 leading-relaxed font-semibold">{selectedDoctor.qualifications}</p>
+                </div>
+              )}
+
+              <div className="border-t border-white/5 pt-4 space-y-2">
+                <h4 className="text-[10px] text-slate-500 uppercase tracking-wider font-black">Contact Credentials</h4>
+                <div className="bg-slate-950/40 border border-white/10 rounded-xl divide-y divide-white/5">
+                  <div className="flex items-center gap-3 px-4 py-2.5 text-xs">
+                    <Mail className="w-4 h-4 text-indigo-455" />
+                    <span className="text-slate-300 font-medium">{selectedDoctor.email || 'No email registered'}</span>
+                  </div>
+                  <div className="flex items-center gap-3 px-4 py-2.5 text-xs">
+                    <Phone className="w-4 h-4 text-indigo-455" />
+                    <span className="text-slate-300 font-medium">{selectedDoctor.phone || 'No phone registered'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Actions panel */}
+              <div className="border-t border-white/5 pt-4 flex gap-3">
+                <button
+                  onClick={() => selectedDoctor.approved ? handleSuspendDoctor(selectedDoctor.id) : handleApproveDoctor(selectedDoctor.id)}
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition border ${
+                    selectedDoctor.approved 
+                      ? 'bg-rose-500/10 hover:bg-rose-500/15 border-rose-500/25 text-rose-450' 
+                      : 'bg-emerald-500/10 hover:bg-emerald-500/15 border-emerald-500/25 text-emerald-450'
+                  }`}
+                >
+                  {selectedDoctor.approved ? 'Suspend Access' : 'Approve Access'}
+                </button>
+                <button
+                  onClick={() => handleToggleVerification(selectedDoctor.id, selectedDoctor.verified)}
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition border ${
+                    selectedDoctor.verified 
+                      ? 'bg-slate-800 hover:bg-slate-750 border-white/10 text-slate-350' 
+                      : 'bg-indigo-500/10 hover:bg-indigo-500/15 border-indigo-500/25 text-indigo-400'
+                  }`}
+                >
+                  {selectedDoctor.verified ? 'Unverify Account' : 'Verify Account'}
+                </button>
+              </div>
+
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* CREATE / EDIT FORM MODAL */}
+      <AnimatePresence>
+        {isFormOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-slate-900 border border-white/15 rounded-3xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto font-sans shadow-2xl relative custom-scrollbar space-y-5"
+            >
+              <button 
+                onClick={() => setIsFormOpen(false)}
+                className="absolute top-4 right-4 p-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-slate-400 hover:text-white cursor-pointer transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <h2 className="text-lg font-black text-white flex items-center gap-2 mb-2">
+                <Stethoscope className="w-5 h-5 text-indigo-400" />
+                {editingDoctor ? 'Edit Doctor Profile' : 'Add Doctor Profile'}
+              </h2>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Full Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Sarah Jenkins"
+                      value={fullName}
+                      onChange={e => setFullName(e.target.value)}
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Specialty</label>
+                    <select
+                      value={specialty}
+                      onChange={e => setSpecialty(e.target.value)}
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-slate-350 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                    >
+                      {SPECIALTIES.map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Email Address</label>
+                    <input
+                      type="email"
+                      placeholder="dr.jenkins@example.com"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Phone Number</label>
+                    <input
+                      type="text"
+                      placeholder="+91 9876543210"
+                      value={phone}
+                      onChange={e => setPhone(e.target.value)}
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Organization / Hospital</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. City General Hospital"
+                      value={organization}
+                      onChange={e => setOrganization(e.target.value)}
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Experience (Years)</label>
+                    <input
+                      type="number"
+                      placeholder="5"
+                      value={experienceYears}
+                      onChange={e => setExperienceYears(e.target.value)}
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Medical License Number</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. REG-M-84729"
+                    value={licenseNumber}
+                    onChange={e => setLicenseNumber(e.target.value)}
+                    className="w-full bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Qualifications & Degrees</label>
+                  <textarea
+                    rows="3"
+                    placeholder="e.g. MBBS, MD Cardiology (Stanford University)"
+                    value={qualifications}
+                    onChange={e => setQualifications(e.target.value)}
+                    className="w-full bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md transition"
+                >
+                  <Save className="w-4 h-4" /> Save Doctor Profile
+                </button>
+
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+    </div>
   );
 };
