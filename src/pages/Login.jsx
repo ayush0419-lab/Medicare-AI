@@ -4,6 +4,7 @@ import { Loader2, Stethoscope, ChevronLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { MedicalScene } from '../components/three/MedicalScene';
+import { motion } from 'framer-motion';
 
 export const Login = () => {
   const [email, setEmail] = useState('');
@@ -39,27 +40,58 @@ export const Login = () => {
 
   return (
     <div 
-      className="min-h-screen flex flex-col items-center justify-center p-6 font-sans relative bg-cover bg-center"
+      className="min-h-screen flex flex-col items-center justify-center p-6 font-sans relative bg-cover bg-center overflow-hidden"
       style={{ backgroundImage: theme.image }}
     >
       <div className={`absolute inset-0 ${theme.overlay} backdrop-blur-sm mix-blend-multiply`}></div>
       <MedicalScene variant="hero" role="doctor" className="absolute inset-0 z-[1] opacity-[0.45] mix-blend-screen" />
       
-      <Link to="/" className="absolute top-8 left-8 flex items-center gap-1 text-sm font-bold text-white hover:text-slate-200 transition-colors z-10 drop-shadow-md">
-        <ChevronLeft className="h-4 w-4" /> Back to home
-      </Link>
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ type: "spring", stiffness: 120, damping: 15, delay: 0.1 }}
+        className="absolute top-8 left-8 z-10"
+      >
+        <Link to="/" className="flex items-center gap-1 text-sm font-bold text-white hover:text-slate-200 transition-colors drop-shadow-md">
+          <ChevronLeft className="h-4 w-4" /> Back to home
+        </Link>
+      </motion.div>
 
       <div className="w-full max-w-sm z-10">
         
         <div className="flex flex-col items-center text-center mb-8">
-          <div className={`w-12 h-12 rounded-xl ${theme.iconBg} flex items-center justify-center mb-6 shadow-2xl`}>
+          <motion.div 
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", stiffness: 260, damping: 22, delay: 0.2 }}
+            className={`w-12 h-12 rounded-xl ${theme.iconBg} flex items-center justify-center mb-6 shadow-2xl`}
+          >
             {theme.icon}
-          </div>
-          <h1 className="text-3xl font-black text-white mb-2 drop-shadow-lg tracking-tight">{theme.title}</h1>
-          <p className="text-sm font-bold text-white/80 drop-shadow-md">Sign in to continue to MediCare-AI.</p>
+          </motion.div>
+          <motion.h1 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 100, damping: 15, delay: 0.3 }}
+            className="text-3xl font-black text-white mb-2 drop-shadow-lg tracking-tight"
+          >
+            {theme.title}
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+            className="text-sm font-bold text-white/80 drop-shadow-md"
+          >
+            Sign in to continue to MediCare-AI.
+          </motion.p>
         </div>
 
-        <div className={`depth-card bg-white/10 backdrop-blur-2xl border border-white/20 p-6 md:p-8 border-t-4 ${theme.border}`}>
+        <motion.div 
+          initial={{ opacity: 0, y: 40, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: "spring", stiffness: 90, damping: 14, delay: 0.5 }}
+          className={`depth-card bg-white/10 backdrop-blur-2xl border border-white/20 p-6 md:p-8 border-t-4 ${theme.border}`}
+        >
           <form onSubmit={handleLogin} className="space-y-5">
             
             <div className="space-y-2">
@@ -99,14 +131,19 @@ export const Login = () => {
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Secure Sign In'}
             </button>
           </form>
-        </div>
+        </motion.div>
 
-        <p className="text-center text-sm font-bold text-white/80 mt-8 drop-shadow-md">
+        <motion.p 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.75, duration: 0.5 }}
+          className="text-center text-sm font-bold text-white/80 mt-8 drop-shadow-md"
+        >
           Don't have an account?{' '}
           <Link to="/signup" className="font-black text-white hover:underline underline-offset-4">
             Request access
           </Link>
-        </p>
+        </motion.p>
 
       </div>
     </div>
