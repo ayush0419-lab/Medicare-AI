@@ -9,6 +9,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../hooks/useNotifications';
 import { useTheme } from '../context/ThemeContext';
+import { InteractiveGrid } from '../components/ui/InteractiveGrid';
 
 export const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -58,7 +59,7 @@ export const DashboardLayout = () => {
 
   return (
     <div className="min-h-screen font-sans flex bg-slate-50 dark:bg-[#070b19] text-slate-900 dark:text-slate-100 transition-colors duration-300">
-      {/* Lightweight CSS background — replaces heavy Three.js canvas */}
+      {/* Lightweight CSS background + Interactive Anime.js-style Ripple Grid */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
         <div className="absolute -top-32 -right-32 w-[600px] h-[600px] rounded-full
                         bg-gradient-to-br from-indigo-100/60 dark:from-indigo-500/10 via-violet-100/40 dark:via-violet-500/5 to-transparent
@@ -66,7 +67,7 @@ export const DashboardLayout = () => {
         <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full
                         bg-gradient-to-tr from-cyan-100/50 dark:from-cyan-500/10 via-blue-100/30 dark:via-blue-500/5 to-transparent
                         blur-3xl" />
-        <div className="absolute inset-0 clinical-grid opacity-30 dark:opacity-10" />
+        <InteractiveGrid />
       </div>
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
